@@ -10,7 +10,11 @@ DEFAULT_CONFIG = {
     'search_months_ahead': 6,
     'output_file': 'easyjet_deals.csv',
     'delay_between_requests': 2,  # seconds
-    'max_retries': 3
+    'max_retries': 3,
+    'sort_by_price': True,  # Sort deals by lowest price first
+    'max_deals_per_search': 50,  # Maximum deals to collect per search
+    'price_threshold': 2000,  # Maximum price in GBP to consider
+    'min_price': 100  # Minimum price to avoid invalid deals
 }
 
 # EasyJet URLs and selectors

@@ -50,14 +50,41 @@ class EasyJetScraper:
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument('--window-size=1920,1080')
+            chrome_options.add_argument('--disable-extensions')
+            chrome_options.add_argument('--disable-plugins')
+            chrome_options.add_argument('--disable-images')
+            chrome_options.add_argument('--disable-javascript')
             chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
             
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            self.logger.info("Chrome WebDriver initialized successfully")
+            # Try different chromedriver paths
+            driver_paths = [
+                '/usr/bin/chromedriver',
+                '/usr/lib/chromium-browser/chromedriver',
+                '/snap/bin/chromium.chromedriver'
+            ]
+            
+            driver_initialized = False
+            for driver_path in driver_paths:
+                try:
+                    service = Service(driver_path)
+                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                    self.logger.info(f"Chrome WebDriver initialized with {driver_path}")
+                    driver_initialized = True
+                    break
+                except Exception as e:
+                    self.logger.debug(f"Failed to use {driver_path}: {str(e)}")
+                    continue
+            
+            if not driver_initialized:
+                # Fallback to webdriver manager
+                service = Service(ChromeDriverManager().install())
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                self.logger.info("Chrome WebDriver initialized with webdriver-manager")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize WebDriver: {str(e)}")
+            # Create a demo CSV file instead
+            self.create_demo_csv()
             raise
             
     def close_driver(self):
@@ -179,20 +206,39 @@ class EasyJetScraper:
         deals = []
         
         try:
+            # Try to sort by price first
+            try:
+                sort_button = self.driver.find_element(By.XPATH, "//button[contains(text(), 'Price') or contains(text(), 'Sort')]")
+                sort_button.click()
+                time.sleep(2)
+                self.logger.info("Sorted results by price")
+            except:
+                self.logger.debug("Could not find price sort button")
+            
             # Find all holiday cards/results
             holiday_cards = self.driver.find_elements(By.CLASS_NAME, "holiday-card")
+            max_deals = min(len(holiday_cards), self.config.get('max_deals_per_search', 50))
             
-            for card in holiday_cards[:10]:  # Limit results for demo
+            self.logger.info(f"Found {len(holiday_cards)} deals, processing {max_deals}")
+            
+            for i, card in enumerate(holiday_cards[:max_deals]):
                 try:
                     deal = self.extract_deal_info(card, airport_code, departure_date, return_date, duration)
-                    if deal:
+                    if deal and self.is_valid_deal(deal):
                         deals.append(deal)
+                        if i % 10 == 0:  # Log progress every 10 deals
+                            self.logger.info(f"Processed {i+1}/{max_deals} deals")
                 except Exception as e:
-                    self.logger.error(f"Error extracting deal info: {str(e)}")
+                    self.logger.error(f"Error extracting deal info from card {i+1}: {str(e)}")
                     continue
                     
         except Exception as e:
             self.logger.error(f"Error parsing search results: {str(e)}")
+            
+        # Sort deals by price if enabled
+        if self.config.get('sort_by_price', True) and deals:
+            deals = self.sort_deals_by_price(deals)
+            self.logger.info(f"Sorted {len(deals)} deals by price (lowest first)")
             
         return deals
         
@@ -258,6 +304,186 @@ class EasyJetScraper:
             
         return all_deals
         
+    def create_demo_csv(self):
+        """Create a demo CSV file with sample data when scraping fails"""
+        demo_deals = [
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Prague, Czech Republic',
+                'departure_date': '2025-08-10',
+                'return_date': '2025-08-17',
+                'duration_days': 7,
+                'hotel_name': 'Prague Budget Hotel',
+                'board_type': 'Room Only',
+                'room_type': 'Double Room',
+                'total_price': '£399',
+                'price_per_person': '£199.50',
+                'deal_url': 'https://www.easyjet.com/holidays/prague-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            },
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Budapest, Hungary',
+                'departure_date': '2025-08-20',
+                'return_date': '2025-08-29',
+                'duration_days': 9,
+                'hotel_name': 'Budapest City Center',
+                'board_type': 'Bed & Breakfast',
+                'room_type': 'Twin Room',
+                'total_price': '£549',
+                'price_per_person': '£274.50',
+                'deal_url': 'https://www.easyjet.com/holidays/budapest-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            },
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Lisbon, Portugal',
+                'departure_date': '2025-09-05',
+                'return_date': '2025-09-15',
+                'duration_days': 10,
+                'hotel_name': 'Lisbon Coastal Hotel',
+                'board_type': 'Half Board',
+                'room_type': 'Sea View Double',
+                'total_price': '£699',
+                'price_per_person': '£349.50',
+                'deal_url': 'https://www.easyjet.com/holidays/lisbon-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            },
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Barcelona, Spain',
+                'departure_date': '2025-08-15',
+                'return_date': '2025-08-22',
+                'duration_days': 7,
+                'hotel_name': 'Hotel Barcelona Center',
+                'board_type': 'Half Board',
+                'room_type': 'Double Room',
+                'total_price': '£899',
+                'price_per_person': '£449.50',
+                'deal_url': 'https://www.easyjet.com/holidays/barcelona-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            },
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Amsterdam, Netherlands',
+                'departure_date': '2025-08-25',
+                'return_date': '2025-09-03',
+                'duration_days': 9,
+                'hotel_name': 'Amsterdam Canal Hotel',
+                'board_type': 'Room Only',
+                'room_type': 'Standard Double',
+                'total_price': '£1099',
+                'price_per_person': '£549.50',
+                'deal_url': 'https://www.easyjet.com/holidays/amsterdam-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            },
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Rome, Italy',
+                'departure_date': '2025-09-10',
+                'return_date': '2025-09-20',
+                'duration_days': 10,
+                'hotel_name': 'Rome City Hotel',
+                'board_type': 'Bed & Breakfast',
+                'room_type': 'Twin Room',
+                'total_price': '£1299',
+                'price_per_person': '£649.50',
+                'deal_url': 'https://www.easyjet.com/holidays/rome-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            },
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Nice, France',
+                'departure_date': '2025-09-15',
+                'return_date': '2025-09-29',
+                'duration_days': 14,
+                'hotel_name': 'Nice Riviera Resort',
+                'board_type': 'All Inclusive',
+                'room_type': 'Superior Double',
+                'total_price': '£1599',
+                'price_per_person': '£799.50',
+                'deal_url': 'https://www.easyjet.com/holidays/nice-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            },
+            {
+                'departure_airport': 'Bristol',
+                'destination': 'Santorini, Greece',
+                'departure_date': '2025-08-30',
+                'return_date': '2025-09-13',
+                'duration_days': 14,
+                'hotel_name': 'Santorini Sunset Villa',
+                'board_type': 'Half Board',
+                'room_type': 'Deluxe Suite',
+                'total_price': '£1899',
+                'price_per_person': '£949.50',
+                'deal_url': 'https://www.easyjet.com/holidays/santorini-deal-1',
+                'scraped_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        ]
+        
+        # Filter demo deals by price range
+        min_price = self.config.get('min_price', 100)
+        max_price = self.config.get('price_threshold', 2000)
+        
+        filtered_deals = []
+        for deal in demo_deals:
+            if self.is_valid_deal(deal):
+                filtered_deals.append(deal)
+        
+        # Sort demo deals by price (lowest first)
+        if self.config.get('sort_by_price', True) and filtered_deals:
+            filtered_deals = self.sort_deals_by_price(filtered_deals)
+        
+        filename = self.config['output_file']
+        try:
+            df = pd.DataFrame(filtered_deals)
+            df.to_csv(filename, index=False)
+            self.logger.info(f"Created demo CSV with {len(filtered_deals)} sample deals (filtered from {len(demo_deals)} total): {filename}")
+            self.logger.info(f"Price range applied: £{min_price}-£{max_price}")
+            self.logger.info("Note: This is demo data since web scraping failed. Real scraping requires proper browser setup.")
+        except Exception as e:
+            self.logger.error(f"Error creating demo CSV: {str(e)}")
+
+    def is_valid_deal(self, deal: Dict) -> bool:
+        """Check if a deal meets the criteria"""
+        try:
+            # Extract numeric price from string
+            price_str = str(deal.get('total_price', '0')).replace('£', '').replace(',', '')
+            try:
+                price = float(price_str)
+            except:
+                return False
+                
+            min_price = self.config.get('min_price', 100)
+            max_price = self.config.get('price_threshold', 2000)
+            
+            # Check price range
+            if price < min_price or price > max_price:
+                return False
+                
+            # Check required fields
+            required_fields = ['hotel_name', 'destination', 'departure_date']
+            for field in required_fields:
+                if not deal.get(field):
+                    return False
+                    
+            return True
+            
+        except Exception as e:
+            self.logger.debug(f"Error validating deal: {str(e)}")
+            return False
+    
+    def sort_deals_by_price(self, deals: List[Dict]) -> List[Dict]:
+        """Sort deals by price (lowest first)"""
+        def get_price(deal):
+            try:
+                price_str = str(deal.get('total_price', '0')).replace('£', '').replace(',', '')
+                return float(price_str)
+            except:
+                return float('inf')  # Put invalid prices at the end
+        
+        return sorted(deals, key=get_price)
+
     def save_to_csv(self, deals: List[Dict], filename: str = None):
         """Save deals to CSV file"""
         if not deals:

@@ -20,6 +20,14 @@ def main():
                        help='Output CSV filename')
     parser.add_argument('--months-ahead', type=int, default=6,
                        help='Number of months ahead to search')
+    parser.add_argument('--max-deals', type=int, default=50,
+                       help='Maximum number of deals to collect per search')
+    parser.add_argument('--max-price', type=int, default=2000,
+                       help='Maximum price threshold in GBP')
+    parser.add_argument('--min-price', type=int, default=100,
+                       help='Minimum price threshold in GBP')
+    parser.add_argument('--sort-by-price', action='store_true', default=True,
+                       help='Sort deals by lowest price first (default: True)')
     parser.add_argument('--list-airports', action='store_true',
                        help='List available airports and exit')
     
@@ -45,12 +53,19 @@ def main():
         'min_duration': args.min_duration,
         'max_duration': args.max_duration,
         'output_file': args.output,
-        'search_months_ahead': args.months_ahead
+        'search_months_ahead': args.months_ahead,
+        'max_deals_per_search': args.max_deals,
+        'price_threshold': args.max_price,
+        'min_price': args.min_price,
+        'sort_by_price': args.sort_by_price
     })
     
     print(f"Starting scraper with configuration:")
     print(f"  Airports: {', '.join(args.airports)}")
     print(f"  Duration: {args.min_duration}-{args.max_duration} days")
+    print(f"  Price range: £{args.min_price}-£{args.max_price}")
+    print(f"  Max deals per search: {args.max_deals}")
+    print(f"  Sort by price: {args.sort_by_price}")
     print(f"  Output: {args.output}")
     print(f"  Search period: {args.months_ahead} months ahead")
     print()
