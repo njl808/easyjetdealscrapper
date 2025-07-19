@@ -12,7 +12,7 @@ from datetime import datetime
 import json
 import time
 
-from improved_easyjet_scraper import ImprovedEasyJetScraper as EasyJetScraper
+from enhanced_easyjet_scraper import EnhancedEasyJetScraper as EasyJetScraper
 from config import DEFAULT_CONFIG, AIRPORT_CODES
 
 app = Flask(__name__)
@@ -141,7 +141,7 @@ def run_scraper_background(config):
         scraper_status['progress'] = 'Running scraper...'
         
         # Run scraper
-        scraper.run()
+        scraper.run_enhanced_scraping()
         
         scraper_status['progress'] = 'Completed successfully!'
         scraper_status['last_result'] = config['output_file']
