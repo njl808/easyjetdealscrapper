@@ -27,19 +27,51 @@ echo.
 echo 📦 Installing required packages...
 echo.
 
-REM Install requirements
-pip install -r requirements.txt
-if errorlevel 1 (
-    echo ❌ Failed to install requirements
-    pause
-    exit /b 1
+REM Try different pip commands
+echo Trying pip...
+pip install -r requirements.txt >nul 2>&1
+if not errorlevel 1 (
+    echo ✅ Requirements installed with pip
+    goto :install_pyinstaller
 )
 
+echo Trying python -m pip...
+python -m pip install -r requirements.txt >nul 2>&1
+if not errorlevel 1 (
+    echo ✅ Requirements installed with python -m pip
+    set PIP_CMD=python -m pip
+    goto :install_pyinstaller
+)
+
+echo Trying py -m pip...
+py -m pip install -r requirements.txt >nul 2>&1
+if not errorlevel 1 (
+    echo ✅ Requirements installed with py -m pip
+    set PIP_CMD=py -m pip
+    goto :install_pyinstaller
+)
+
+echo ❌ Failed to install requirements with any pip method
+echo.
+echo Troubleshooting tips:
+echo 1. Try running: python -m pip install -r requirements.txt
+echo 2. Run this script as Administrator
+echo 3. Check WINDOWS_TROUBLESHOOTING.md for more help
+echo.
+pause
+exit /b 1
+
+:install_pyinstaller
 echo.
 echo 🔨 Installing PyInstaller for building executable...
-pip install pyinstaller
+if defined PIP_CMD (
+    %PIP_CMD% install pyinstaller
+) else (
+    pip install pyinstaller
+)
 if errorlevel 1 (
     echo ❌ Failed to install PyInstaller
+    echo You can still run the application manually
     pause
     exit /b 1
 )
