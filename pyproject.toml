@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "easyjet-deal-scraper"
+version = "1.0.0"
+description = "A Python web scraper for EasyJet holiday deals"
+readme = "README.md"
+license = {text = "GPL-3.0"}
+authors = [
+    {name = "EasyJet Scraper Team", email = "contact@example.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.28.0,<3.0.0",
+    "beautifulsoup4>=4.11.0,<5.0.0",
+    "selenium>=4.10.0,<5.0.0",
+    "pandas>=1.5.0,<3.0.0",
+    "python-dotenv>=0.19.0,<2.0.0",
+    "lxml>=4.9.0,<5.0.0",
+    "webdriver-manager>=3.8.0,<5.0.0",
+    "flask>=2.2.0,<3.0.0",
+    "pydantic>=1.10.0,<3.0.0",
+    "pyyaml>=6.0,<7.0",
+    "click>=8.0.0,<9.0.0",
+    # Windows-specific dependencies
+    "pywin32>=300; sys_platform == 'win32'",
+    "wmi>=1.5.1; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=2.20.0",
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+]
+build = [
+    "pyinstaller>=5.0.0",
+    "auto-py-to-exe>=2.20.0",
+]
+gui = [
+    "tkinter-tooltip>=2.0.0",
+    "pillow>=9.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/njl808/easyjetdealscrapper"
+Repository = "https://github.com/njl808/easyjetdealscrapper"
+Issues = "https://github.com/njl808/easyjetdealscrapper/issues"
+
+[project.scripts]
+easyjet-scraper = "easyjet_scraper:main"
+easyjet-gui = "gui_scraper:main"
+easyjet-web = "web_gui:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["easyjet_scraper*", "config*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=easyjet_scraper --cov-report=html --cov-report=term-missing"
