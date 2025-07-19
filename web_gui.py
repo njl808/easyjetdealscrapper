@@ -12,7 +12,7 @@ from datetime import datetime
 import json
 import time
 
-from easyjet_scraper import EasyJetScraper
+from improved_easyjet_scraper import ImprovedEasyJetScraper as EasyJetScraper
 from config import DEFAULT_CONFIG, AIRPORT_CODES
 
 app = Flask(__name__)
